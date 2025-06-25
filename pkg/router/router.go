@@ -44,9 +44,6 @@ type RouterManager struct {
 	registeredPaths map[string]bool // Track registered paths
 }
 
-// DefaultManager is the default instance of RouterManager
-var DefaultManager = NewRouterManager()
-
 // NewRouterManager creates a new RouterManager
 func NewRouterManager() *RouterManager {
 	return &RouterManager{
@@ -57,42 +54,42 @@ func NewRouterManager() *RouterManager {
 }
 
 // AddRouter adds a single route to the manager
-func AddRouter(route Router) {
-	DefaultManager.routes = append(DefaultManager.routes, route)
+func (rm *RouterManager) AddRouter(route Router) {
+	rm.routes = append(rm.routes, route)
 }
 
 // AddRouterGroup adds a route group to the manager
-func AddRouterGroup(group RouteGroup) {
-	DefaultManager.routeGroups = append(DefaultManager.routeGroups, group)
+func (rm *RouterManager) AddRouterGroup(group RouteGroup) {
+	rm.routeGroups = append(rm.routeGroups, group)
 }
 
 // LoadRoutes loads all routes and route groups into a ServeMux
-func LoadRoutes() *http.ServeMux {
+func (rm *RouterManager) LoadRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 	// Load individual routes
-	for _, route := range DefaultManager.routes {
-		if DefaultManager.registeredPaths[route.Path] {
+	for _, route := range rm.routes {
+		if rm.registeredPaths[route.Path] {
 			log.Printf("Warning: Path %s is already registered, skipping.\n", route.Path)
 			continue
 		}
 		handler := ChainMiddleware(route.Handler, route.Middleware...)
 		mux.Handle(route.Path, handler)
-		DefaultManager.registeredPaths[route.Path] = true
+		rm.registeredPaths[route.Path] = true
 	}
 	// Load route groups
-	for _, group := range DefaultManager.routeGroups {
+	for _, group := range rm.routeGroups {
 		for _, route := range group.Routes {
 			// Combine group and route middleware, maintaining order
 			allMiddleware := append(group.Middleware, route.Middleware...)
 			handler := ChainMiddleware(route.Handler, allMiddleware...)
 			// Ensure the path is correctly formatted
 			fullPath := group.Prefix + route.Path
-			if fullPath == "" || DefaultManager.registeredPaths[fullPath] {
+			if fullPath == "" || rm.registeredPaths[fullPath] {
 				log.Printf("Warning: Path %s is already registered, skipping.\n", fullPath)
 				continue // Skip if the full path is empty or already registered
 			}
 			mux.Handle(fullPath, handler)
-			DefaultManager.registeredPaths[fullPath] = true
+			rm.registeredPaths[fullPath] = true
 		}
 	}
 	return mux
