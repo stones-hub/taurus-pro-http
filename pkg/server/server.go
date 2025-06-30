@@ -20,25 +20,23 @@ package server
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
+	"github.com/stones-hub/taurus-pro-http/pkg/common"
 	"github.com/stones-hub/taurus-pro-http/pkg/router"
 )
 
-// Config HTTP服务器配置
+// Config HTTP server config
 type Config struct {
-	Addr         string        // 服务器地址，默认 ":8080"
-	ReadTimeout  time.Duration // 读取超时时间，默认 15s
-	WriteTimeout time.Duration // 写入超时时间，默认 15s
-	IdleTimeout  time.Duration // 空闲超时时间，默认 30s
+	Addr         string        // server address, default ":8080"
+	ReadTimeout  time.Duration // read timeout, default 15s
+	WriteTimeout time.Duration // write timeout, default 15s
+	IdleTimeout  time.Duration // idle timeout, default 30s
 }
 
-// DefaultConfig 默认配置
+// DefaultConfig default config
 var DefaultConfig = Config{
 	Addr:         ":8080",
 	ReadTimeout:  15 * time.Second,
@@ -72,13 +70,14 @@ func WithIdleTimeout(idleTimeout time.Duration) serverOption {
 	}
 }
 
-// Server HTTP服务器
+// Server HTTP server
 type Server struct {
 	*http.Server
 	config Config
 	router *router.RouterManager
 }
 
+// NewServer create a new server instance
 func NewServer(options ...serverOption) *Server {
 	srv := &Server{
 		config: DefaultConfig,
@@ -100,7 +99,7 @@ func NewServer(options ...serverOption) *Server {
 	return srv
 }
 
-// New 创建新的服务器实例
+// New create a new server instance
 func New(config Config) *Server {
 	// 使用默认配置填充未指定的值
 	if config.Addr == "" {
@@ -131,36 +130,41 @@ func New(config Config) *Server {
 	return srv
 }
 
-// AddRouter 添加单个路由
+// AddRouter add a single router
 func (s *Server) AddRouter(route router.Router) {
 	s.router.AddRouter(route)
 }
 
-// AddRouterGroup 添加路由组
+// AddRouterGroup add a router group
 func (s *Server) AddRouterGroup(group router.RouteGroup) {
 	s.router.AddRouterGroup(group)
 }
 
-// Start 启动服务器
-func (s *Server) Start() error {
-	// 加载所有路由
+// Get Server config
+func (s *Server) GetConfig() Config {
+	return s.config
+}
+
+// Start start server
+func (s *Server) Start(errChan chan error) {
+	// load all routes
 	s.Handler = s.router.LoadRoutes()
 
-	// 启动服务器
+	// start server
 	go func() {
+		log.Printf("%s🔗 -> Server is running on %s %s \n", common.Green, s.config.Addr, common.Reset)
+		// when server startup failed, write error to errChan.
+		// But http.ErrServerClosed is not an error,,because it is expected when the server is closed.
+		// ListenAndServe is a blocking call
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("HTTP server error: %v\n", err)
+			log.Printf("%s🔗 -> Server start failed on %s %s \n", common.Red, s.config.Addr, common.Reset)
+			errChan <- err
 		}
 	}()
+}
 
-	// 等待中断信号
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	// 优雅关闭
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	return s.Shutdown(ctx)
+// Shutdown shutdown server
+func (s *Server) Shutdown(ctx context.Context) error {
+	log.Printf("%s🔗 -> Server is shutting down on %s %s \n", common.Yellow, s.config.Addr, common.Reset)
+	return s.Server.Shutdown(ctx)
 }

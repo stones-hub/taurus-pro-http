@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -134,20 +135,21 @@ func main() {
 	})
 
 	srv.AddRouter(router.Router{
-		Path: "/api/v1/users",
+		Path: "/home",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("Hello, World!"))
 		}),
-		Middleware: []router.MiddlewareFunc{
-			corsMiddleware,
-			rateLimitMiddleware,
-			// jwtMiddleware,
-		},
 	})
 
 	// 启动服务器
-	fmt.Println("Server is running on :8080")
-	if err := srv.Start(); err != nil {
-		log.Fatal(err)
+	errChan := make(chan error, 1)
+	srv.Start(errChan)
+
+	// wait for server start failed or timeout
+	if err := <-errChan; err != nil {
+		log.Printf("%s🔗 -> Server start failed (%s) on %s %s \n", common.Red, err.Error(), srv.GetConfig().Addr, common.Reset)
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	srv.Shutdown(ctx)
 }
