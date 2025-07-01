@@ -147,7 +147,7 @@ func main() {
 
 	// wait for server start failed or timeout
 	if err := <-errChan; err != nil {
-		log.Printf("%s🔗 -> Server start failed (%s) on %s %s \n", common.Red, err.Error(), srv.GetConfig().Addr, common.Reset)
+		log.Printf("Server start failed (%s) on %s \n", err.Error(), srv.GetConfig().Addr)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
