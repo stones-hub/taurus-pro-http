@@ -151,12 +151,12 @@ func (s *Server) Start(errChan chan error) {
 
 	// start server
 	go func() {
-		log.Printf("Server is running on %s \n", "s.config.Addr")
+		log.Printf("Server is running on %s \n", s.config.Addr)
 		// when server startup failed, write error to errChan.
 		// But http.ErrServerClosed is not an error,,because it is expected when the server is closed.
 		// ListenAndServe is a blocking call
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("Server start failed on %s \n", "s.config.Addr")
+			log.Printf("Server start failed on %s \n", s.config.Addr)
 			errChan <- err
 		}
 	}()
@@ -164,6 +164,6 @@ func (s *Server) Start(errChan chan error) {
 
 // Shutdown shutdown server
 func (s *Server) Shutdown(ctx context.Context) error {
-	log.Printf("Server is shutting down on %s \n", "s.config.Addr")
+	log.Printf("Server is shutting down on %s \n", s.config.Addr)
 	return s.Server.Shutdown(ctx)
 }
