@@ -157,7 +157,9 @@ func New(options ...McpServerOption) (*MCPServer, func(), error) {
 
 	return opts, func() {
 		if err := opts.Shutdown(context.Background()); err != nil {
-			log.Fatal(fmt.Errorf("failed to shutdown mcp server: %v", err))
+			log.Println(fmt.Errorf("failed to shutdown mcp server: %v", err))
+		} else {
+			log.Println("mcp server shutdown successfully !")
 		}
 	}, nil
 }
