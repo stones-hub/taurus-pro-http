@@ -1,12 +1,14 @@
 package middleware
 
 import (
-	"runtime/debug"
 	"net/http"
+	"runtime/debug"
+
+	"github.com/stones-hub/taurus-pro-http/pkg/httpx"
 )
 
 // ErrorLoggerHandler 错误处理函数
-type ErrorLoggerHandler func(err error, stack string)
+type ErrorLoggerHandler func(err any, stack string)
 
 func RecoveryMiddleware(fn ErrorLoggerHandler) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -14,7 +16,7 @@ func RecoveryMiddleware(fn ErrorLoggerHandler) func(http.Handler) http.Handler {
 			defer func() {
 				if err := recover(); err != nil {
 					stack := debug.Stack()
-					fn(err, stack)
+					fn(err, string(stack))
 					httpx.SendResponse(w, http.StatusInternalServerError, "Internal Server Error", nil)
 					return
 				}
