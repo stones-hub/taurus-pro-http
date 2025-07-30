@@ -16,9 +16,17 @@
 // Email: 61647649@qq.com
 // Date: 2025-06-13
 
+// 修改于 2025-07-30
+// author: yelei
+// 注意：
+// 1. 如果需要重复读取请求体数据， 请使用ParseStreamReusable
+// 2. 凡是调用了r.Body.Close()的函数， 后续无法再读取请求体数据, 除非我们将r.Body重新被设置回io.NopCloser（io.NopCloser 会忽略关闭操作）
+// 3. 不管是 io.ReadAll 还是 json.NewDecoder或者其他的读取方式， 读取后都会将偏移量移动到读取最后的位置，后续无法再读取之前已读取的数据
+// 4. 我们将r.Body重新被设置回io.NopCloser, 虽然每次调用都能读取到数据，但是不建议这样做，因为每次重新设置都会创建新的内存缓冲区， 如果数据量很大， 会导致内存占用过高
 package httpx
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -76,6 +84,33 @@ func ParseJson(r *http.Request) (map[string]interface{}, error) {
 	}
 
 	return jsonData, nil
+}
+
+// ParseStreamReusable 获取请求体数据，并支持重复读取
+// 读取后会将数据重新设置回请求体，以便后续可以再次读取
+// 虽然每次调用都能读取到数据，但是不建议这样做，因为每次重新设置都会创建新的内存缓冲区， 如果数据量很大， 会导致内存占用过高
+func ParseStreamReusable(r *http.Request) ([]byte, error) {
+	defer r.Body.Close() // 这里关闭并不会影响后续读取， 因为我们将r.Body重新设置回io.NopCloser, NopCloser 会忽略关闭操作
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read body: %w", err)
+	}
+
+	// 将读取的数据重新设置回请求体，以便后续可以再次读取
+	r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	return body, nil
+}
+
+// ParseStream 获取请求体数据（一次性读取，读取后无法再次读取）
+func ParseStream(r *http.Request) ([]byte, error) {
+	defer r.Body.Close()            // 这里会真正关闭原始的body，后续无法再读取
+	body, err := io.ReadAll(r.Body) // 通过ReadAll读取后，偏移量会移动到末尾，后续无法再读取（哪怕不关闭r.Body，也无法再读取）
+	if err != nil {
+		return nil, fmt.Errorf("failed to read body: %w", err)
+	}
+
+	return body, nil
 }
 
 // ParseJsonArray 获取非表单提交的  JSON 数组数据, 返回数组
