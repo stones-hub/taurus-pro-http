@@ -192,7 +192,7 @@ func (rw *ResponseWrapper) SendResponse() {
 // 用途：一次性设置并发送完整的HTTP响应
 // 重要性：便捷方法，提供统一的响应发送接口
 // 参数：statusCode - HTTP状态码，headers - 响应头部，data - 响应数据
-func (rw *ResponseWrapper) Respond(statusCode int, headers map[string]string, data []byte) {
+func (rw *ResponseWrapper) Respond(statusCode int, data []byte, headers map[string]string) {
 	// 清空之前的响应数据
 	rw.Reset()
 
@@ -217,7 +217,7 @@ func (rw *ResponseWrapper) Respond(statusCode int, headers map[string]string, da
 // 用途：便捷的JSON响应发送方法
 // 重要性：常用方法，适用于API开发
 // 参数：statusCode - HTTP状态码，headers - 响应头部，data - JSON数据
-func (rw *ResponseWrapper) RespondWithJSON(statusCode int, headers map[string]string, data interface{}) {
+func (rw *ResponseWrapper) RespondWithJSON(statusCode int, data interface{}, headers map[string]string) {
 	// 确保Content-Type为application/json
 	if headers == nil {
 		headers = make(map[string]string)
@@ -240,7 +240,7 @@ func (rw *ResponseWrapper) RespondWithJSON(statusCode int, headers map[string]st
 // 用途：便捷的文本响应发送方法
 // 重要性：常用方法，适用于简单文本响应
 // 参数：statusCode - HTTP状态码，headers - 响应头部，text - 文本内容
-func (rw *ResponseWrapper) RespondWithText(statusCode int, headers map[string]string, text string) {
+func (rw *ResponseWrapper) RespondWithText(statusCode int, text string, headers map[string]string) {
 	// 确保Content-Type为text/plain
 	if headers == nil {
 		headers = make(map[string]string)
