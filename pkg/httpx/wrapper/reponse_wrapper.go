@@ -2,6 +2,8 @@ package wrapper
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -10,7 +12,7 @@ import (
 // ResponseWrapper 完整的ResponseWriter封装示例
 type ResponseWrapper struct {
 	http.ResponseWriter
-	body       []byte
+	body       *bytes.Buffer
 	statusCode int
 	headers    http.Header
 	written    bool
@@ -33,8 +35,19 @@ func (rw *ResponseWrapper) Write(data []byte) (int, error) {
 	if !rw.written {
 		rw.written = true
 	}
-	rw.body = append(rw.body, data...)
+
+	// 限制响应体大小
+	if len(data) > 1024*1024 {
+		return 0, errors.New("response body is too large, max size is 1MB")
+	}
+
+	rw.body.Write(data)
 	return len(data), nil
+}
+
+// 重置body
+func (rw *ResponseWrapper) ResetBody() {
+	rw.body.Reset()
 }
 
 // WriteHeader 重写WriteHeader方法 - 记录状态码
@@ -119,6 +132,32 @@ func (rw *ResponseWrapper) ReadFrom(r io.Reader) (n int64, err error) {
 	return 0, http.ErrNotSupported
 }
 
+// GetStatusCode 获取状态码
+func (rw *ResponseWrapper) GetStatusCode() int {
+	return rw.statusCode
+}
+
+// GetHeaders 获取响应头
+func (rw *ResponseWrapper) GetHeaders() map[string]string {
+	headers := make(map[string]string)
+	for key, values := range rw.headers {
+		if len(values) > 0 {
+			headers[key] = values[0]
+		}
+	}
+	return headers
+}
+
+// GetBody 获取响应体
+func (rw *ResponseWrapper) GetBody() []byte {
+	return rw.body.Bytes()
+}
+
+// GetBodyString 获取响应体字符串
+func (rw *ResponseWrapper) GetBodyString() string {
+	return rw.body.String()
+}
+
 // SendResponse 发送收集到的响应
 // 用途：将收集到的响应头、状态码和响应体发送到客户端
 // 重要性：核心方法，必须实现。这是响应处理的最终步骤
@@ -137,7 +176,7 @@ func (rw *ResponseWrapper) SendResponse() {
 		rw.ResponseWriter.WriteHeader(rw.statusCode)
 	}
 
-	if len(rw.body) > 0 {
-		rw.ResponseWriter.Write(rw.body)
+	if len(rw.body.Bytes()) > 0 {
+		rw.ResponseWriter.Write(rw.body.Bytes())
 	}
 }
