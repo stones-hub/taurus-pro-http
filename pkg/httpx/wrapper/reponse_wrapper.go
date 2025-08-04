@@ -3,6 +3,7 @@ package wrapper
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -45,9 +46,15 @@ func (rw *ResponseWrapper) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-// 重置body
-func (rw *ResponseWrapper) ResetBody() {
+// Reset 完全重置响应包装器
+// 用途：清空所有响应数据，给外部重新设置的机会
+// 重要性：核心方法，用于错误处理和响应重写
+// 执行操作：清空body、headers、statusCode，重置written状态
+func (rw *ResponseWrapper) Reset() {
 	rw.body.Reset()
+	rw.headers = make(http.Header)
+	rw.statusCode = 0
+	rw.written = false
 }
 
 // WriteHeader 重写WriteHeader方法 - 记录状态码
@@ -179,4 +186,67 @@ func (rw *ResponseWrapper) SendResponse() {
 	if len(rw.body.Bytes()) > 0 {
 		rw.ResponseWriter.Write(rw.body.Bytes())
 	}
+}
+
+// Respond 优雅的响应发送方法
+// 用途：一次性设置并发送完整的HTTP响应
+// 重要性：便捷方法，提供统一的响应发送接口
+// 参数：statusCode - HTTP状态码，headers - 响应头部，data - 响应数据
+func (rw *ResponseWrapper) Respond(statusCode int, headers map[string]string, data []byte) {
+	// 清空之前的响应数据
+	rw.Reset()
+
+	// 设置状态码
+	rw.WriteHeader(statusCode)
+
+	// 设置响应头部
+	for key, value := range headers {
+		rw.Header().Set(key, value)
+	}
+
+	// 写入响应数据
+	if len(data) > 0 {
+		rw.Write(data)
+	}
+
+	// 发送响应
+	rw.SendResponse()
+}
+
+// RespondWithJSON 发送JSON格式响应
+// 用途：便捷的JSON响应发送方法
+// 重要性：常用方法，适用于API开发
+// 参数：statusCode - HTTP状态码，headers - 响应头部，data - JSON数据
+func (rw *ResponseWrapper) RespondWithJSON(statusCode int, headers map[string]string, data interface{}) {
+	// 确保Content-Type为application/json
+	if headers == nil {
+		headers = make(map[string]string)
+	}
+	headers["Content-Type"] = "application/json"
+
+	// 序列化JSON数据
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		// 序列化失败，发送错误响应
+		rw.Respond(statusCode, headers, []byte(`{"error": "JSON序列化失败"}`))
+		return
+	}
+
+	// 发送JSON响应
+	rw.Respond(statusCode, headers, jsonData)
+}
+
+// RespondWithText 发送文本格式响应
+// 用途：便捷的文本响应发送方法
+// 重要性：常用方法，适用于简单文本响应
+// 参数：statusCode - HTTP状态码，headers - 响应头部，text - 文本内容
+func (rw *ResponseWrapper) RespondWithText(statusCode int, headers map[string]string, text string) {
+	// 确保Content-Type为text/plain
+	if headers == nil {
+		headers = make(map[string]string)
+	}
+	headers["Content-Type"] = "text/plain"
+
+	// 发送文本响应
+	rw.Respond(statusCode, headers, []byte(text))
 }
