@@ -228,12 +228,12 @@ func (rw *ResponseWrapper) RespondWithJSON(statusCode int, data interface{}, hea
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		// 序列化失败，发送错误响应
-		rw.Respond(statusCode, headers, []byte(`{"error": "JSON序列化失败"}`))
+		rw.Respond(statusCode, []byte(`{"error": "JSON序列化失败"}`), headers)
 		return
 	}
 
 	// 发送JSON响应
-	rw.Respond(statusCode, headers, jsonData)
+	rw.Respond(statusCode, jsonData, headers)
 }
 
 // RespondWithText 发送文本格式响应
@@ -248,5 +248,5 @@ func (rw *ResponseWrapper) RespondWithText(statusCode int, text string, headers 
 	headers["Content-Type"] = "text/plain"
 
 	// 发送文本响应
-	rw.Respond(statusCode, headers, []byte(text))
+	rw.Respond(statusCode, []byte(text), headers)
 }
