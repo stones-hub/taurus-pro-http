@@ -248,6 +248,7 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 						optionsCustomHeaders = append(optionsCustomHeaders, headerName)
 					}
 				}
+				log.Printf("[CORS] 预检请求头: %s", optionsCustomHeaders)
 				requestHeaders = strings.Join(optionsCustomHeaders, ",")
 			} else {
 				// 非预检请求只检查自定义头（非标准头）
@@ -257,6 +258,7 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 						customHeaders = append(customHeaders, headerName)
 					}
 				}
+				log.Printf("[CORS] 非预检请求头: %s", customHeaders)
 				requestHeaders = strings.Join(customHeaders, ",")
 			}
 
