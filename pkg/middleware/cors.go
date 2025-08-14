@@ -111,7 +111,7 @@ func validateConfig(config *CorsConfig) error {
 	}
 
 	// 验证配置的 AllowMethods 是否合法
-	if config.AllowMethods != "" {
+	if config.AllowMethods != "" && strings.TrimSpace(config.AllowMethods) != "*" {
 		methods := strings.Split(config.AllowMethods, ",")
 		for _, method := range methods {
 			method = strings.TrimSpace(strings.ToUpper(method))
@@ -130,7 +130,7 @@ func validateConfig(config *CorsConfig) error {
 	}
 
 	// 验证配置的 AllowHeaders 是否合法
-	if config.AllowHeaders != "" {
+	if config.AllowHeaders != "" && strings.TrimSpace(config.AllowHeaders) != "*" {
 		headers := strings.Split(config.AllowHeaders, ",")
 		for _, header := range headers {
 			header = strings.TrimSpace(header)
