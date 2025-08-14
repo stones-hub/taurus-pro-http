@@ -264,6 +264,7 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 
 			// 只有当有自定义头时才需要验证
 			if requestHeaders != "" {
+				log.Printf("[CORS] 请求头: %s", requestHeaders)
 				// 验证请求中使用的自定义头是否在允许列表中
 				allowedHeadersMapLower := make(map[string]bool)
 				allowedHeaders := strings.Split(config.AllowHeaders, ",")
@@ -276,15 +277,19 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 				// 检查请求中的每个自定义头是否在允许列表中
 				headersAllowed := true
 				for _, header := range strings.Split(requestHeaders, ",") {
+					log.Printf("[CORS] 检查请求头: %s 111111", header)
 					header = strings.TrimSpace(strings.ToLower(header))
 					if header == "" {
 						continue
 					}
 
+					log.Printf("[CORS] 检查请求头: %s 222222", header)
 					if !allowedHeadersMapLower[header] {
+						log.Printf("[CORS] 检查请求头: %s 333333", header)
 						headersAllowed = false
 						break
 					}
+					log.Printf("[CORS] 检查请求头: %s 444444", header)
 				}
 
 				if !headersAllowed {
@@ -297,6 +302,7 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 
 			// 如果是预检请求，设置响应头并返回
 			if r.Method == http.MethodOptions {
+				log.Printf("[CORS] 预检请求, 设置响应头 5555555")
 				w.Header().Set("Access-Control-Allow-Methods", config.AllowMethods)
 				w.Header().Set("Access-Control-Allow-Headers", config.AllowHeaders)
 				w.Header().Set("Access-Control-Max-Age", config.MaxAge)
@@ -308,6 +314,7 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 			if config.AllowCredentials {
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 			}
+			log.Printf("[CORS] 非预检请求, 设置响应头 6666666")
 
 			next.ServeHTTP(w, r)
 		})
