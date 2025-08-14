@@ -240,15 +240,20 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 			var requestHeaders string
 			if r.Method == http.MethodOptions {
 				// 预检请求从头部获取
-				requestHeaders = r.Header.Get("Access-Control-Request-Headers")
-				// 预检请求可能没有自定义头，这是正常的
+				optionsHeaders := r.Header.Get("Access-Control-Request-Headers")
+				optionsCustomHeaders := []string{}
+				// 预检请求可能没有自定义头，这是正常的, 但是过滤掉标准头
+				for _, headerName := range strings.Split(optionsHeaders, ",") {
+					if !isStandardHeader(strings.TrimSpace(strings.ToLower(headerName))) {
+						optionsCustomHeaders = append(optionsCustomHeaders, headerName)
+					}
+				}
+				requestHeaders = strings.Join(optionsCustomHeaders, ",")
 			} else {
 				// 非预检请求只检查自定义头（非标准头）
 				var customHeaders []string
 				for headerName := range r.Header {
-					log.Printf("[CORS] 请求头: %s", headerName)
-					if !isStandardHeader(strings.ToLower(headerName)) {
-						log.Printf("[CORS] 自定义请求头: %s", headerName)
+					if !isStandardHeader(strings.TrimSpace(strings.ToLower(headerName))) {
 						customHeaders = append(customHeaders, headerName)
 					}
 				}
