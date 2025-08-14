@@ -304,7 +304,13 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 			if r.Method == http.MethodOptions {
 				log.Printf("[CORS] 预检请求, 设置响应头 5555555")
 				w.Header().Set("Access-Control-Allow-Methods", config.AllowMethods)
-				w.Header().Set("Access-Control-Allow-Headers", config.AllowHeaders)
+
+				// 直接返回预检请求中声明的头（已经验证过了）
+				optionsHeaders := r.Header.Get("Access-Control-Request-Headers")
+				if optionsHeaders != "" {
+					w.Header().Set("Access-Control-Allow-Headers", optionsHeaders)
+				}
+
 				w.Header().Set("Access-Control-Max-Age", config.MaxAge)
 				httpx.SendResponse(w, http.StatusNoContent, "No Content", nil)
 				return
