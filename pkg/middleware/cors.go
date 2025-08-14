@@ -246,7 +246,7 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 				// 非预检请求只检查自定义头（非标准头）
 				var customHeaders []string
 				for headerName := range r.Header {
-					if !isStandardHeader(headerName) {
+					if !isStandardHeader(strings.ToLower(headerName)) {
 						customHeaders = append(customHeaders, headerName)
 					}
 				}
@@ -256,12 +256,12 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 			// 只有当有自定义头时才需要验证
 			if requestHeaders != "" {
 				// 验证请求中使用的自定义头是否在允许列表中
-				allowedHeadersMap := make(map[string]bool)
+				allowedHeadersMapLower := make(map[string]bool)
 				allowedHeaders := strings.Split(config.AllowHeaders, ",")
 
-				// 将允许的头转换为 map，便于查找
+				// 将允许的头转换为小写 map，便于查找
 				for _, header := range allowedHeaders {
-					allowedHeadersMap[strings.TrimSpace(strings.ToLower(header))] = true
+					allowedHeadersMapLower[strings.TrimSpace(strings.ToLower(header))] = true
 				}
 
 				// 检查请求中的每个自定义头是否在允许列表中
@@ -272,14 +272,14 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 						continue
 					}
 
-					if !allowedHeadersMap[header] {
+					if !allowedHeadersMapLower[header] {
 						headersAllowed = false
 						break
 					}
 				}
 
 				if !headersAllowed {
-					log.Printf("[CORS] 请求头验证失败, 请求头: %s, 允许的请求头: %s", requestHeaders, config.AllowHeaders)
+					log.Printf("[CORS] 请求头验证失败, 请求头: %s, 允许的请求头: %s (注意：自定义头大小写不敏感)", requestHeaders, config.AllowHeaders)
 					httpx.SendResponse(w, http.StatusForbidden, "Headers not allowed", nil)
 					return
 				}
