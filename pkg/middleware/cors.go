@@ -224,10 +224,14 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 				requestMethod = r.Method
 			}
 			methodAllowed := false
-			for _, method := range strings.Split(config.AllowMethods, ",") {
-				if strings.TrimSpace(method) == requestMethod {
-					methodAllowed = true
-					break
+			if strings.TrimSpace(config.AllowMethods) == "*" {
+				methodAllowed = true
+			} else {
+				for _, method := range strings.Split(config.AllowMethods, ",") {
+					if strings.TrimSpace(method) == requestMethod {
+						methodAllowed = true
+						break
+					}
 				}
 			}
 			if !methodAllowed {
@@ -248,7 +252,6 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 						optionsCustomHeaders = append(optionsCustomHeaders, headerName)
 					}
 				}
-				log.Printf("[CORS] 预检请求头: %s", optionsCustomHeaders)
 				requestHeaders = strings.Join(optionsCustomHeaders, ",")
 			} else {
 				// 非预检请求只检查自定义头（非标准头）
@@ -258,13 +261,11 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 						customHeaders = append(customHeaders, headerName)
 					}
 				}
-				log.Printf("[CORS] 非预检请求头: %s", customHeaders)
 				requestHeaders = strings.Join(customHeaders, ",")
 			}
 
 			// 只有当有自定义头时才需要验证
-			if requestHeaders != "" {
-				log.Printf("[CORS] 请求头: %s", requestHeaders)
+			if requestHeaders != "" && strings.TrimSpace(config.AllowHeaders) != "*" {
 				// 验证请求中使用的自定义头是否在允许列表中
 				allowedHeadersMapLower := make(map[string]bool)
 				allowedHeaders := strings.Split(config.AllowHeaders, ",")
@@ -277,19 +278,15 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 				// 检查请求中的每个自定义头是否在允许列表中
 				headersAllowed := true
 				for _, header := range strings.Split(requestHeaders, ",") {
-					log.Printf("[CORS] 检查请求头: %s 111111", header)
 					header = strings.TrimSpace(strings.ToLower(header))
 					if header == "" {
 						continue
 					}
 
-					log.Printf("[CORS] 检查请求头: %s 222222", header)
 					if !allowedHeadersMapLower[header] {
-						log.Printf("[CORS] 检查请求头: %s 333333", header)
 						headersAllowed = false
 						break
 					}
-					log.Printf("[CORS] 检查请求头: %s 444444", header)
 				}
 
 				if !headersAllowed {
@@ -298,11 +295,11 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 					return
 				}
 			}
+
 			// ----------------------------------------------验证请求方法和请求头(结束)--------------------------------------------------
 
 			// 如果是预检请求，设置响应头并返回
 			if r.Method == http.MethodOptions {
-				log.Printf("[CORS] 预检请求, 设置响应头 5555555")
 				w.Header().Set("Access-Control-Allow-Methods", config.AllowMethods)
 
 				// 直接返回预检请求中声明的头（已经验证过了）
@@ -320,7 +317,6 @@ func CorsMiddleware(config *CorsConfig) func(http.Handler) http.Handler {
 			if config.AllowCredentials {
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 			}
-			log.Printf("[CORS] 非预检请求, 设置响应头 6666666")
 
 			next.ServeHTTP(w, r)
 		})
