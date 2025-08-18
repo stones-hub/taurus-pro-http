@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/stones-hub/taurus-pro-http/pkg/common"
 	"github.com/stones-hub/taurus-pro-http/pkg/httpx"
 	"github.com/stones-hub/taurus-pro-http/pkg/middleware"
 	"github.com/stones-hub/taurus-pro-http/pkg/router"
@@ -62,26 +60,6 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	httpx.SendResponse(w, http.StatusOK, user, nil)
 }
 
-// LoginHandler 处理登录请求
-func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	// 模拟登录成功
-	userID := uint(1)
-	username := "admin"
-
-	// 生成 token
-	token, err := common.GenerateToken(userID, username)
-	if err != nil {
-		httpx.SendResponse(w, http.StatusInternalServerError, nil, nil)
-		return
-	}
-
-	// 存储 token 到 Redis（这里只是示例，实际需要 Redis 支持）
-	ua := r.Header.Get("User-Agent")
-	fmt.Printf("Store token to Redis: user_id=%d, ua=%s, token=%s\n", userID, ua, token)
-
-	httpx.SendResponse(w, http.StatusOK, map[string]string{"token": token}, nil)
-}
-
 func main() {
 	// 创建服务器实例
 	srv := server.NewServer(
@@ -95,32 +73,13 @@ func main() {
 	userHandler := NewUserHandler()
 
 	// 创建中间件
-	// jwtMiddleware := middleware.JWTMiddleware(nil)             // 使用默认配置
-	rateLimitMiddleware := middleware.RateLimitMiddleware(nil) // 使用默认配置
-	corsMiddleware := middleware.CorsMiddleware(nil)           // 使用默认配置
-
-	// 公开路由组
-	srv.AddRouterGroup(router.RouteGroup{
-		Prefix: "/api/v1/public",
-		Middleware: []router.MiddlewareFunc{
-			corsMiddleware,
-			rateLimitMiddleware,
-		},
-		Routes: []router.Router{
-			{
-				Path:    "/login",
-				Handler: http.HandlerFunc(userHandler.LoginHandler),
-			},
-		},
-	})
+	corsMiddleware := middleware.CorsMiddleware(nil) // 使用默认配置
 
 	// 受保护的路由组
 	srv.AddRouterGroup(router.RouteGroup{
 		Prefix: "/api/v1",
 		Middleware: []router.MiddlewareFunc{
 			corsMiddleware,
-			rateLimitMiddleware,
-			// jwtMiddleware,
 		},
 		Routes: []router.Router{
 			{
