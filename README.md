@@ -15,10 +15,7 @@ Taurus Pro HTTP 是一个高性能、企业级的 Go HTTP 服务框架，专为�
 - **Range 请求支持**：完整的 HTTP Range 请求处理，支持大文件分片下载
 
 ### 🔐 安全与认证
-- **JWT 认证中间件**：完整的 JWT Token 验证和管理
-- **Token 存储接口**：支持自定义 Token 存储策略，实现分布式会话管理
 - **CORS 中间件**：灵活的跨域资源共享配置
-- **速率限制**：内置请求频率限制，防止 API 滥用
 
 ### 🌐 WebSocket 支持
 - **实时通信**：完整的 WebSocket 连接管理和消息处理
@@ -34,7 +31,6 @@ Taurus Pro HTTP 是一个高性能、企业级的 Go HTTP 服务框架，专为�
 - **中间件系统**：可插拔的中间件架构，支持自定义中间件开发
 - **错误处理**：统一的错误码管理和异常处理机制
 - **日志追踪**：内置请求追踪和日志记录
-- **性能监控**：运行时性能优化和资源管理
 
 ## 📦 安装
 
@@ -198,62 +194,7 @@ func handleResponse(w http.ResponseWriter, r *http.Request) {
 
 ### 中间件使用
 
-#### 1. JWT 认证中间件
-
-```go
-import (
-    "github.com/stones-hub/taurus-pro-http/pkg/middleware"
-)
-
-func main() {
-    // 配置 JWT 中间件
-    jwtConfig := &middleware.JWTConfig{
-        TokenHeader:   "Authorization",
-        JWTContextKey: "user_claims",
-    }
-
-    // 在路由中使用
-    router.AddRouter(router.Router{
-        Path: "/api/protected",
-        Handler: protectedHandler,
-        Middleware: []router.MiddlewareFunc{
-            middleware.JWTMiddleware(jwtConfig),
-        },
-    })
-}
-
-func protectedHandler(w http.ResponseWriter, r *http.Request) {
-    // 从上下文中获取用户信息
-    claims := r.Context().Value("user_claims").(*common.Claims)
-    httpx.SendResponse(w, http.StatusOK, claims, nil)
-}
-```
-
-#### 2. 速率限制中间件
-
-```go
-import (
-    "github.com/stones-hub/taurus-pro-http/pkg/middleware"
-)
-
-func main() {
-    // 配置速率限制
-    rateLimitConfig := &middleware.RateLimitConfig{
-        RequestsPerMinute: 100,
-        BurstSize:         20,
-    }
-
-    router.AddRouter(router.Router{
-        Path: "/api/limited",
-        Handler: handler,
-        Middleware: []router.MiddlewareFunc{
-            middleware.RateLimitMiddleware(rateLimitConfig),
-        },
-    })
-}
-```
-
-#### 3. CORS 中间件
+#### 1. CORS 中间件
 
 ```go
 import (
@@ -360,17 +301,12 @@ taurus-pro-http/
 ├── docs/                   # 文档
 ├── examples/               # 使用示例
 ├── pkg/                    # 核心包
-│   ├── common/            # 通用功能
-│   │   ├── jwt.go         # JWT 工具
-│   │   └── rate_limiter.go # 速率限制器
 │   ├── httpx/             # HTTP 扩展
 │   │   ├── request.go      # 请求处理
 │   │   ├── response.go     # 响应处理
 │   │   └── wrapper/        # 包装器
 │   ├── middleware/         # 中间件
 │   │   ├── cors.go         # CORS 中间件
-│   │   ├── jwt.go          # JWT 中间件
-│   │   ├── rate_limit.go   # 速率限制中间件
 │   │   └── recovery.go     # 恢复中间件
 │   ├── router/             # 路由管理
 │   │   └── router.go       # 路由核心
@@ -402,26 +338,17 @@ type Config struct {
 }
 ```
 
-### JWT 配置
 
-```go
-type JWTConfig struct {
-    TokenHeader   string        // Token 头部键名
-    TokenStore    TokenStore    // Token 存储实现
-    JWTContextKey JWTContextKey // 上下文键名
-}
-```
 
 ### CORS 配置
 
 ```go
 type CORSConfig struct {
-    AllowedOrigins []string // 允许的源
-    AllowedMethods []string // 允许的方法
-    AllowedHeaders []string // 允许的头部
-    ExposedHeaders []string // 暴露的头部
-    AllowCredentials bool   // 允许凭证
-    MaxAge           int    // 预检请求缓存时间
+    AllowOrigins     string // 允许的源，支持多个域名用逗号分隔，或使用 "*"
+    AllowMethods     string // 允许的方法，如 "GET,POST,PUT,DELETE,OPTIONS"
+    AllowHeaders     string // 允许的头部，如 "Content-Type,Authorization"
+    AllowCredentials bool   // 是否允许携带凭证
+    MaxAge           string // 预检请求缓存时间（秒）
 }
 ```
 
