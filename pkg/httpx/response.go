@@ -126,11 +126,11 @@ func getResponseStatusAndMessage(code int) (httpStatus int, message string) {
 }
 
 // RedirectResponse sends a redirect response to the client
-func RedirectResponse(w http.ResponseWriter, url string, code int) {
+func RedirectResponse(w http.ResponseWriter, r *http.Request, url string, code int) {
 	if code < 300 || code > 399 {
 		code = http.StatusFound // 默认使用 302 Found
 	}
-	http.Redirect(w, &http.Request{}, url, code)
+	http.Redirect(w, r, url, code)
 }
 
 // HTMLResponse sends an HTML response to the client
