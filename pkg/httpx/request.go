@@ -196,6 +196,31 @@ func ParseMultipartData(r *http.Request) (map[string][]*multipart.FileHeader, ma
 	return files, params, nil
 }
 
+// GetPathParam 获取 URL 路径参数的值
+// 适用于 Go 1.22+ 的动态路由，如 /video/{userid}/get
+// 参数: r - HTTP 请求对象, key - 路径参数名
+// 返回: 路径参数值, 错误信息
+// 示例: userid := httpx.GetPathParam(r, "userid")
+func GetPathParam(r *http.Request, key string) (string, error) {
+	value := r.PathValue(key)
+	if value == "" {
+		return "", fmt.Errorf("path parameter %s not found", key)
+	}
+	return value, nil
+}
+
+// GetPathParamDefault 获取 URL 路径参数的值，如果不存在则返回默认值
+// 参数: r - HTTP 请求对象, key - 路径参数名, defaultValue - 默认值
+// 返回: 路径参数值或默认值
+// 示例: userid := httpx.GetPathParamDefault(r, "userid", "unknown")
+func GetPathParamDefault(r *http.Request, key, defaultValue string) string {
+	value := r.PathValue(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
+}
+
 // SaveUploadFiles 将文件数据存储到指定目录
 func SaveUploadFiles(files []*multipart.FileHeader, destDir string) error {
 	for _, fileHeader := range files {

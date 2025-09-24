@@ -111,3 +111,57 @@ func ChainMiddleware(handler http.Handler, middlewares ...MiddlewareFunc) http.H
 	}
 	return handler
 }
+
+/*
+Go 1.22+ 动态路由支持说明
+========================
+
+从 Go 1.22 开始，http.ServeMux 支持动态路径参数和 HTTP 方法匹配。
+
+1. 动态路径参数语法
+   - 使用 {paramName} 语法定义路径参数
+   - 示例：/video/{userid}/get、/user/{id}/profile/{section}
+   - 参数名区分大小写，建议使用小写字母和下划线
+
+2. 路径参数获取
+   - 在处理器中使用 r.PathValue("paramName") 获取参数值
+   - 如果参数不存在，PathValue 返回空字符串
+   - 建议使用 httpx.GetPathParam() 进行错误处理
+
+3. HTTP 方法匹配
+   - 支持在路由模式中指定 HTTP 方法
+   - 语法：METHOD /path/pattern
+   - 示例：GET /api/users/{id}、POST /api/users、PUT /api/users/{id}
+
+4. 路由匹配优先级
+   - 更具体的路径优先匹配
+   - 例如：/users/{id} 比 /users/{id}/profile 更通用
+   - 避免路径冲突，确保路由模式唯一性
+
+5. 注意事项
+   - 路径参数值不包含前导或尾随斜杠
+   - 路径参数值已进行 URL 解码
+   - 路径参数名不能包含特殊字符，只能使用字母、数字、下划线
+   - 避免在路径参数中使用连字符，建议使用下划线
+
+6. 使用示例
+   ```go
+   // 路由配置
+   srv.AddRouter(router.Router{
+       Path:    "/video/{userid}/get",
+       Handler: http.HandlerFunc(videoHandler),
+   })
+
+   // 处理器中获取参数
+   func videoHandler(w http.ResponseWriter, r *http.Request) {
+       userid, err := httpx.GetPathParam(r, "userid")
+       if err != nil {
+           // 处理参数缺失错误
+           return
+       }
+       // 使用 userid...
+   }
+   ```
+
+
+*/
